@@ -29,7 +29,7 @@ def download_one(url):
     print(url)
     headers = {
         'Cookie':
-            'PHPSESSID=57m4qqnnofcoqsjvftn7jvoiq5; _ga=GA1.2.91683436.1581503238; _gid=GA1.2.1201712388.1581503238; __cfduid=ddcf2689bf2b788db3490b7106dc5a9d01581523199; cf_clearance=45a57bcb6f45f84e7185c2ec4923450eec26832f-1581535822-0-150',
+            'PHPSESSID=57m4qqnnofcoqsjvftn7jvoiq5; _ga=GA1.2.91683436.1581503238; _gid=GA1.2.1201712388.1581503238; __cfduid=d3d70050c1c9293a470a940b2dd15f9ed1581582212; cf_clearance=9ae05454cf213820e25a899db526659f8cfa27eb-1581587877-0-150',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36 SE 2.X MetaSr 1.0'
     }
     filename = url.split('/')[-1]
@@ -101,5 +101,5 @@ if __name__ == '__main__':
     while True:
         urls = get_urls(1000, 2000)
         t0 = time.time()
-        download(8, urls)
+        download(2, urls)
         print('总耗时：', time.time() - t0)
