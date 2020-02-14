@@ -29,7 +29,7 @@ def download_one(url):
     print(url)
     headers = {
         'Cookie':
-            'PHPSESSID=57m4qqnnofcoqsjvftn7jvoiq5; _ga=GA1.2.91683436.1581503238; _gid=GA1.2.1201712388.1581503238; __cfduid=d3d70050c1c9293a470a940b2dd15f9ed1581582212; cf_clearance=9ae05454cf213820e25a899db526659f8cfa27eb-1581587877-0-150',
+            'PHPSESSID=57m4qqnnofcoqsjvftn7jvoiq5; _ga=GA1.2.91683436.1581503238; _gid=GA1.2.1201712388.1581503238; __cfduid=d9110631d5e5bb72cec22f0c8134195b61581592272; cf_clearance=48ba9cebad223dc55bd72544291fb1418683c876-1581593395-0-150',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36 SE 2.X MetaSr 1.0'
     }
     filename = url.split('/')[-1]
@@ -37,7 +37,7 @@ def download_one(url):
         print('已下载，跳过:', filename)
         return
     resp = requests.get(url, headers=headers, stream=True)
-    print(resp.status_code)
+    print(resp.status_code, filename)
     # l = resp.headers.get('Content-Length', -1)
     # if l / 1024 / 1024 > 49:
     #     print('超过大小限制，跳过：', filename)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     #     print('下载完毕一组：', '%d ~ %d' % (st, st + 50 - 1), '  耗时：', time.time() - t0)
     #     st += 50
     while True:
-        urls = get_urls(1000, 2000)
+        urls = get_urls(2001, 3000)
         t0 = time.time()
-        download(2, urls)
+        download(4, urls)
         print('总耗时：', time.time() - t0)
