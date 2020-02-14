@@ -1,6 +1,7 @@
 import time, os, random
 from multiprocessing import Pool
-import requests
+import requests, sys
+import threading
 from get_cookie import get_cookie
 
 # ua = UserAgent()
@@ -22,8 +23,10 @@ def get_tmpname():
     return 'tmp' + randstr(16)
 
 
-def download_one(url, cookie, user_agent):
-    t0 = time.time()
+def download_one(url, cookie, user_agent, timeout):
+    """
+    子进程会调用该函数，以cookie和user_agent对url进行访问，下载超时时间为 timeout (s)
+    """
     print(url)
     headers = {
         'Cookie': cookie,
@@ -56,20 +59,31 @@ def download_one(url, cookie, user_agent):
         if not os.path.exists(tmpname):
             break
 
+    t0 = time.time()
+    fail = False
+
     with open(tmpname, 'wb') as f:
         for chunk in resp.iter_content(chunk_size=1024):
+            if time.time() - t0 > timeout:
+                fail = True
+                break
             if chunk:
                 f.write(chunk)
-    os.rename(tmpname, filename)
-    print('下载成功:', filename, ' 耗时:', time.time() - t0)
+    if fail:
+        os.remove(tmpname)
+        print('下载超时（%ds）: ' % timeout, filename)
+    else:
+        os.rename(tmpname, filename)
+        print('下载成功:', filename, ' 耗时:', time.time() - t0)
 
 
-def download(processing_num, urls, refresh_interval, chunk):
+def download(processing_num, urls, refresh_interval, chunk, timeout):
     """
     :param processing_num: 进程数
     :param urls: 要下载的列表
     :param refresh_interval: 刷新cookie的时间间隔（s）
     :param chunk: 每个进程池中进程的数目 （太大会导致超过刷新间隔再刷新cookie）
+    :param timeout: 下载超时时间
     :return:
     """
 
@@ -85,7 +99,8 @@ def download(processing_num, urls, refresh_interval, chunk):
             print('User-Agent: ' + user_agent)
         p = Pool(processing_num)
         for url in url_chunk:
-            p.apply_async(download_one, args=(url, cookie, user_agent))
+            res = p.apply_async(download_one, args=(url, cookie, user_agent, timeout))
+            # res.wait(10)
         p.close()
         p.join()
 
@@ -107,5 +122,5 @@ if __name__ == '__main__':
     while True:
         urls = get_urls(3001, 4000)
         t0 = time.time()
-        download(2, urls, 10*60, 12)
+        download(4, urls, 10*60, 40, 180)
         print('总耗时：', time.time() - t0)
