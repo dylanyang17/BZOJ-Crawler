@@ -1,9 +1,7 @@
 import time, os, random
 from multiprocessing import Pool
 import requests
-# from fake_useragent import UserAgent
-import cfscrape
-import pickle
+from get_cookie import get_cookie
 
 # ua = UserAgent()
 
@@ -24,13 +22,12 @@ def get_tmpname():
     return 'tmp' + randstr(16)
 
 
-def download_one(url):
+def download_one(url, cookie, user_agent):
     t0 = time.time()
     print(url)
     headers = {
-        'Cookie':
-            'PHPSESSID=57m4qqnnofcoqsjvftn7jvoiq5; _ga=GA1.2.91683436.1581503238; _gid=GA1.2.1201712388.1581503238; __cfduid=d9110631d5e5bb72cec22f0c8134195b61581592272; cf_clearance=48ba9cebad223dc55bd72544291fb1418683c876-1581593395-0-150',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36 SE 2.X MetaSr 1.0'
+        'Cookie': cookie,
+        'User-Agent': user_agent
     }
     filename = url.split('/')[-1]
     if os.path.exists(filename):
@@ -67,13 +64,30 @@ def download_one(url):
     print('下载成功:', filename, ' 耗时:', time.time() - t0)
 
 
-def download(processing_num, urls):
-    p = Pool(processing_num)
-    for url in urls:
-        #download_one(url)
-        p.apply_async(download_one, args=(url,))
-    p.close()
-    p.join()
+def download(processing_num, urls, refresh_interval, chunk):
+    """
+    :param processing_num: 进程数
+    :param urls: 要下载的列表
+    :param refresh_interval: 刷新cookie的时间间隔（s）
+    :param chunk: 每个进程池中进程的数目 （太大会导致超过刷新间隔再刷新cookie）
+    :return:
+    """
+
+    cookie = ''
+    user_agent = ''
+    t0 = time.time() - refresh_interval - 1
+    url_chunks = [urls[i:i+chunk] for i in range(0, len(urls), chunk)]
+    for url_chunk in url_chunks:
+        if time.time() - t0 >= refresh_interval:
+            cookie, user_agent = get_cookie()
+            t0 = time.time()
+            print('cookie: ' + cookie)
+            print('User-Agent: ' + user_agent)
+        p = Pool(processing_num)
+        for url in url_chunk:
+            p.apply_async(download_one, args=(url, cookie, user_agent))
+        p.close()
+        p.join()
 
 
 def get_urls(beg, end):
@@ -90,16 +104,8 @@ def get_urls(beg, end):
 
 
 if __name__ == '__main__':
-    # st = 1000
-    # while st <= 2000:
-    #     urls = get_urls(st, st + 50 - 1)
-    #     print('开始下载一组：', '%d ~ %d' % (st, st + 50 - 1))
-    #     t0 = time.time()
-    #     download(8, urls)
-    #     print('下载完毕一组：', '%d ~ %d' % (st, st + 50 - 1), '  耗时：', time.time() - t0)
-    #     st += 50
     while True:
-        urls = get_urls(2001, 3000)
+        urls = get_urls(3001, 4000)
         t0 = time.time()
-        download(4, urls)
+        download(2, urls, 10*60, 12)
         print('总耗时：', time.time() - t0)
