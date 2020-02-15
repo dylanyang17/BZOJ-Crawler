@@ -23,9 +23,9 @@ def get_tmpname():
     return 'tmp' + randstr(16)
 
 
-def download_one(url, cookie, user_agent, timeout):
+def download_one(url, cookie, user_agent, lowest_speed, show_progress):
     """
-    子进程会调用该函数，以cookie和user_agent对url进行访问，下载超时时间为 timeout (s)
+    子进程会调用该函数，以cookie和user_agent对url进行访问，下载最低速度为 lowest_speed，show_progress 表明是否显示下载过程
     """
     print(url)
     headers = {
@@ -59,31 +59,50 @@ def download_one(url, cookie, user_agent, timeout):
         if not os.path.exists(tmpname):
             break
 
-    t0 = time.time()
     fail = False
 
+    t0 = time.time()          # 起始时间戳
+    last_sec_t = time.time()  # 上一秒的时间戳
+    last_min_t = time.time()  # 上一分钟的时间戳
+    cnt = 0  # 目前已经下载的大小 (B)
+    last_sec_cnt = 0  # 上一秒时刻下载的大小 (B)
+    last_min_cnt = 0  # 上一分钟时刻下载的大小 (B)
     with open(tmpname, 'wb') as f:
         for chunk in resp.iter_content(chunk_size=1024):
-            if time.time() - t0 > timeout:
-                fail = True
-                break
             if chunk:
+                cnt += len(chunk)
                 f.write(chunk)
+            now_t = time.time()
+            if now_t - last_min_t >= 60:
+                speed = (cnt - last_min_cnt) / (now_t - last_min_t) / 1024
+                if show_progress:
+                    print('%s: 分钟均速 %.2fKB/s' % (filename, speed))
+                if speed < lowest_speed:
+                    fail = True
+                    break
+                last_min_cnt = cnt
+                last_min_t = now_t
+            if now_t - last_sec_t >= 1:
+                if show_progress:
+                    print('%s: 已下载 %.2fMB  下载速度 %.0fKB/s' % (filename, cnt / 1024 / 1024, (cnt - last_sec_cnt) / (now_t - last_sec_t) / 1024))
+                last_sec_t = time.time()
+                last_sec_cnt = cnt
     if fail:
+        print('%s: 速度过低终止下载 耗时：%d' % (filename, time.time() - t0))
         os.remove(tmpname)
-        print('下载超时（%ds）: ' % timeout, filename)
     else:
         os.rename(tmpname, filename)
-        print('下载成功:', filename, ' 耗时:', time.time() - t0)
+        print('下载成功:', filename, ' 总大小: %.2fMB ' % (cnt / 1024 / 1024), '耗时: ', time.time() - t0)
 
 
-def download(processing_num, urls, refresh_interval, chunk, timeout):
+def download(processing_num, urls, refresh_interval, chunk, lowest_speed, show_progress):
     """
     :param processing_num: 进程数
     :param urls: 要下载的列表
     :param refresh_interval: 刷新cookie的时间间隔（s）
     :param chunk: 每个进程池中进程的数目 （太大会导致超过刷新间隔再刷新cookie）
-    :param timeout: 下载超时时间
+    :param lowest_speed: 最低速度，若检测到一分钟内的均速低于 lowest_speed (KB/s)则退出
+    :param show_progress: 是否显示下载过程
     :return:
     """
 
@@ -99,7 +118,7 @@ def download(processing_num, urls, refresh_interval, chunk, timeout):
             print('User-Agent: ' + user_agent)
         p = Pool(processing_num)
         for url in url_chunk:
-            res = p.apply_async(download_one, args=(url, cookie, user_agent, timeout))
+            res = p.apply_async(download_one, args=(url, cookie, user_agent, lowest_speed, show_progress))
             # res.wait(10)
         p.close()
         p.join()
@@ -120,7 +139,7 @@ def get_urls(beg, end):
 
 if __name__ == '__main__':
     while True:
-        urls = get_urls(3001, 4000)
+        urls = get_urls(3401, 4000)
         t0 = time.time()
-        download(4, urls, 10*60, 40, 180)
+        download(4, urls, 10*60, 40, 20, True)
         print('总耗时：', time.time() - t0)
