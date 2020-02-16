@@ -36,7 +36,11 @@ def download_one(url, cookie, user_agent, lowest_speed, show_progress):
     if os.path.exists(filename):
         print('已下载，跳过:', filename)
         return
-    resp = requests.get(url, headers=headers, stream=True, timeout=5)  # 一定要加timeout!
+    try:
+        resp = requests.get(url, headers=headers, stream=True, timeout=15)  # 一定要加timeout!
+    except requests.exceptions.Timeout:
+        print('请求超时:', filename)
+        return
     print(resp.status_code, filename)
     # l = resp.headers.get('Content-Length', -1)
     # if l / 1024 / 1024 > 49:
