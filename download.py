@@ -36,7 +36,7 @@ def download_one(url, cookie, user_agent, lowest_speed, show_progress):
     if os.path.exists(filename):
         print('已下载，跳过:', filename)
         return
-    resp = requests.get(url, headers=headers, stream=True)
+    resp = requests.get(url, headers=headers, stream=True, timeout=5)  # 一定要加timeout!
     print(resp.status_code, filename)
     # l = resp.headers.get('Content-Length', -1)
     # if l / 1024 / 1024 > 49:
@@ -139,7 +139,7 @@ def get_urls(beg, end):
 
 if __name__ == '__main__':
     while True:
-        urls = get_urls(3401, 4000)
+        urls = get_urls(4001, 4999)
         t0 = time.time()
         download(4, urls, 10*60, 40, 20, True)
         print('总耗时：', time.time() - t0)

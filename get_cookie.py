@@ -1,4 +1,5 @@
 import time
+import selenium
 from selenium import webdriver
 
 
@@ -17,17 +18,21 @@ def get_cookie():
         options.add_argument('User-Agent=%s' % user_agent)
         options.add_argument('headless')
         browser = webdriver.Chrome(options=options)
-        browser.get("http://darkbzoj.tk/data")
-        time.sleep(10)
-        cookie = ''
-        flag = False
-        for name in cookie_names:
-            if browser.get_cookie(name) is None:
-                flag = True
-                break
-            cookie = cookie + name + '=' + browser.get_cookie(name)['value'] + ';'
+        fail = False
+        try:
+            browser.get("http://darkbzoj.tk/data")
+        except:
+            fail = True
+        if not fail:
+            time.sleep(10)
+            cookie = ''
+            for name in cookie_names:
+                if browser.get_cookie(name) is None:
+                    fail = True
+                    break
+                cookie = cookie + name + '=' + browser.get_cookie(name)['value'] + ';'
         browser.close()
-        if not flag:
+        if not fail:
             print('获取 Cookie 成功!')
             return cookie, user_agent
 
